@@ -22,7 +22,7 @@
 ;;
 ;;     (require 'dot-mode)
 ;;     (add-hook 'find-file-hooks 'dot-mode-on)
-;; 
+;;
 ;; You may still want to use the global-set-key above.. especially if you
 ;; use the *scratch* buffer.
 ;;
@@ -86,7 +86,7 @@
 ;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;;; GNU General Public License for more details.
 
-;;; A copy of the GNU General Public License can be obtained from 
+;;; A copy of the GNU General Public License can be obtained from
 ;;; the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA
 ;;; 02139, USA.
 
@@ -162,19 +162,19 @@
 ;;; an error during execution of the stored macro.
 ;;;
 ;;; 1.8
-;;; Second attempt to capture what the user is doing with 
+;;; Second attempt to capture what the user is doing with
 ;;; execute-extended-command (M-x).  The previous version didn't work
 ;;; in XEmacs.  This version works in both XEmacs and GNUEmacs.
 ;;;
 ;;; 1.9
-;;; Third attempt to capture what the user is doing with 
+;;; Third attempt to capture what the user is doing with
 ;;; execute-extended-command (M-x).  Wow was I making things hard.
 ;;; It's cost me a lot of version numbers in a short amount of time,
 ;;; so we won't discuss my previous attempts. *grin*  My second attempt
 ;;; worked just fine, but it was more complicated and maybe not as
 ;;; portable to older version of X/GNU Emacs.
 ;;; Other things:
-;;;   - Yet another restructuring of the code.  By doing so, 
+;;;   - Yet another restructuring of the code.  By doing so,
 ;;;     quoted-insert (C-q) is properly stored by dot-mode.
 ;;;     (quoted-insert has been broken since ver 1.6)
 ;;;   - Deleted an extraneous state and the "extended-state" added
@@ -344,7 +344,7 @@ or even saved for later use with name-last-kbd-macro"
 
 (defun dot-mode-minibuffer-exit ()
   "Catch minibuffer exit"
-  ;; Just store it as a string buffer... 
+  ;; Just store it as a string buffer...
   ;;     On X Emacs, we'll call character-to-event later
   ;;     On GNU Emacs, vconcat will handle strings
   (setq dot-mode-minibuffer-input
