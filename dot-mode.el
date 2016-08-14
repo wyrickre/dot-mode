@@ -208,29 +208,11 @@
 
 (defvar dot-mode-map
   (let ((map (make-sparse-keymap)))
-    (if (fboundp 'read-kbd-macro)
-        (progn
-          (define-key map (read-kbd-macro "C-.")   'dot-mode-execute)
-          (define-key map (read-kbd-macro "C-M-.") 'dot-mode-override)
-          (define-key map (read-kbd-macro "C-c .") 'dot-mode-copy-to-last-kbd-macro)
-        )
-      ;; ELSE - try this way...
-      (define-key map [(control ?.)]         'dot-mode-execute)
-      (define-key map [(control meta ?.)]    'dot-mode-override)
-      (define-key map [(control ?c)(?.)]     'dot-mode-copy-to-last-kbd-macro)
-    )
+    (define-key map (kbd "C-.")   'dot-mode-execute)
+    (define-key map (kbd "C-M-.") 'dot-mode-override)
+    (define-key map (kbd "C-c .") 'dot-mode-copy-to-last-kbd-macro)
     map)
   "Keymap used in dot mode buffers")
-
-;; Make sure add-minor-mode exists
-(if (not (fboundp 'add-minor-mode))
-    (defun add-minor-mode (mode name map)
-      (or (assoc mode minor-mode-alist)
-          (setq minor-mode-alist
-                (cons (list mode name) minor-mode-alist)))
-      (or (assoc mode minor-mode-map-alist)
-          (setq minor-mode-map-alist
-                (cons (cons mode map) minor-mode-map-alist)))))
 
 (add-minor-mode 'dot-mode " Dot" dot-mode-map) ;; depends on add-minor-mode
 
@@ -273,21 +255,7 @@
 ;;         (this-single-command-keys)
 ;;       (vconcat (char-to-string meta-prefix-char) (number-to-string current-prefix-arg) (this-single-command-keys)))))
 
-(cond
- ((fboundp 'this-command-keys-vector)
-  (fset 'dot-mode-command-keys (symbol-function 'this-command-keys-vector)))
- (t
-  (defun dot-mode-command-keys ()
-    (let ((tmp (this-command-keys)))
-      (cond ((vectorp tmp)
-             tmp)
-            ((stringp tmp)
-             (string-to-vector tmp))
-            ((fboundp 'character-to-event) ;; xemacs
-             (character-to-event tmp))
-            (t ;; probably never get here
-             (vconcat tmp))))))
-)
+(fset 'dot-mode-command-keys (symbol-function 'this-command-keys-vector))
 
 (defun dot-mode-copy-to-last-kbd-macro ()
   "Copy the current dot-mode command buffer to the last-kbd-macro variable.
@@ -300,47 +268,20 @@ or even saved for later use with name-last-kbd-macro"
     (message "Copied."))
 )
 
-(cond ((and (fboundp 'event-modifiers) (fboundp 'event-basic-type))
-       (defun dot-mode-event-to-string (ev)
-         "Return the event as a string."
-       (let
-         ((em (event-modifiers ev))
-          (eb (event-basic-type ev)))
-         (if (and (not (symbolp eb)) (equal em '(control)))
-           (char-to-string ev)
-           (concat
-             (mapconcat (lambda(x) (concat "<" (symbol-name x) ">")) em "")
-             (if (symbolp eb) (concat "<" (symbol-name eb) ">") (char-to-string eb))
-      )))))
-      (t
-       (defun dot-mode-event-to-string (ev)
-         "Return the event as a string."
-         (char-to-string ev)))
-)
+(defun dot-mode-event-to-string (ev)
+  "Return the event as a string."
+  (let
+      ((em (event-modifiers ev))
+       (eb (event-basic-type ev)))
+    (if (and (not (symbolp eb)) (equal em '(control)))
+        (char-to-string ev)
+      (concat
+       (mapconcat (lambda(x) (concat "<" (symbol-name x) ">")) em "")
+       (if (symbolp eb) (concat "<" (symbol-name eb) ">") (char-to-string eb))))))
 
 (defun dot-mode-buffer-to-string ()
   "Return the macro buffer as a string."
-  (let ((str dot-mode-cmd-buffer))
-    (cond ((fboundp 'kmacro-display)
-           (setq str (kmacro-display str)))
-          ((fboundp 'character-to-event) ; we're on X-Emacs
-           (progn
-             (setq str (prin1-to-string str))
-             (setq str (replace-in-string str " *#<keypress-event +" "<"))
-             (setq str (replace-in-string str " *<\\(.\\)> *" "\\1"))
-             (setq str (replace-in-string str "^\\[\\(.*\\)\\]$" "\\1"))
-             ))
-          (t ;; ELSE - attempt to do it ourselves
-           (setq str (mapconcat (lambda (arg)
-                                  (cond ((and (fboundp 'eventp) (eventp arg))
-                                         (dot-mode-event-to-string arg))
-                                        ((symbolp arg)
-                                         (concat "<" (symbol-name arg) ">"))
-                                        (t
-                                         (char-to-string arg)))) str "")))
-    )
-    str)
-)
+  (kmacro-display dot-mode-cmd-buffer))
 
 (defun dot-mode-minibuffer-exit ()
   "Catch minibuffer exit"
@@ -381,11 +322,6 @@ or even saved for later use with name-last-kbd-macro"
         ;; hangs during execution (on GNU Emacs, anyway).
         (message "Repeated \"%s\"" (dot-mode-buffer-to-string)))
     ;; Put the hooks back
-    (if (fboundp 'make-local-hook)
-        (progn
-          (make-local-hook 'pre-command-hook)
-          (make-local-hook 'post-command-hook)
-          (make-local-hook 'after-change-functions)))
     (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
     (add-hook 'post-command-hook 'dot-mode-loop nil t)
     (add-hook 'after-change-functions 'dot-mode-after-change nil t)
@@ -411,13 +347,8 @@ or even saved for later use with name-last-kbd-macro"
                ;; remove hook
                (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
                (if (not (null dot-mode-minibuffer-input))
-                   (progn
-                     (if (fboundp 'character-to-event) ;; we're on X-Emacs
-                         (setq dot-mode-minibuffer-input
-                               (mapcar 'character-to-event dot-mode-minibuffer-input)))
-                     (setq dot-mode-cmd-keys (vconcat dot-mode-cmd-keys
-                                                      dot-mode-minibuffer-input))
-                   )
+                   (setq dot-mode-cmd-keys (vconcat dot-mode-cmd-keys
+                                                    dot-mode-minibuffer-input))
                )
              )
            ;; ELSE - we're in override and the keys have already been read
@@ -521,12 +452,6 @@ than just `.'."
         (remove-hook 'after-change-functions 'dot-mode-after-change t)
       )
     ;; ELSE
-    ;; The hooks are _ALWAYS_ local since dot-mode may not be on in every buffer
-    (if (fboundp 'make-local-hook)
-        (progn
-          (make-local-hook 'pre-command-hook)
-          (make-local-hook 'post-command-hook)
-          (make-local-hook 'after-change-functions)))
     (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
     (add-hook 'post-command-hook 'dot-mode-loop nil t)
     (add-hook 'after-change-functions 'dot-mode-after-change nil t)
@@ -549,10 +474,7 @@ than just `.'."
       )
     )
   )
-  (cond ((fboundp 'force-mode-line-update)
-         (force-mode-line-update))
-        ((fboundp 'redraw-modeline)
-         (redraw-modeline)))
+  (force-mode-line-update)
 ;;  (set-buffer-modified-p (buffer-modified-p)) ;; Why was I doing this?
 )
 
