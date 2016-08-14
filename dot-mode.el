@@ -425,9 +425,10 @@ rather than just `.'."  nil " Dot"
 (defun dot-mode-on ()
   "Turn on dot-mode."
   (interactive)
-  (dot-mode 1))
+  (unless (minibufferp) (dot-mode 1)))
 
 (defalias 'turn-on-dot-mode 'dot-mode-on)
+(define-global-minor-mode global-dot-mode dot-mode dot-mode-on)
 
 (provide 'dot-mode)
 
