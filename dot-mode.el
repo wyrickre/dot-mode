@@ -238,17 +238,6 @@ Then it can be called with `call-last-kbd-macro', named with
     (setq last-kbd-macro dot-mode-cmd-buffer)
     (message "Copied.")))
 
-(defun dot-mode-event-to-string (ev)
-  "Return the event as a string."
-  (let
-      ((em (event-modifiers ev))
-       (eb (event-basic-type ev)))
-    (if (and (not (symbolp eb)) (equal em '(control)))
-        (char-to-string ev)
-      (concat
-       (mapconcat (lambda(x) (concat "<" (symbol-name x) ">")) em "")
-       (if (symbolp eb) (concat "<" (symbol-name eb) ">") (char-to-string eb))))))
-
 (defun dot-mode-buffer-to-string ()
   "Return the macro buffer as a string."
   (kmacro-display dot-mode-cmd-buffer))
