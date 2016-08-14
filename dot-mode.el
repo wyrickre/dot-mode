@@ -202,14 +202,6 @@
 ;;; Make calls to make-local-hook optional for Emacs 24 compatibility.
 ;;; Use kmacro-display for displaying the macro string.
 
-(defvar dot-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-.")   'dot-mode-execute)
-    (define-key map (kbd "C-M-.") 'dot-mode-override)
-    (define-key map (kbd "C-c .") 'dot-mode-copy-to-last-kbd-macro)
-    map)
-  "Keymap used in dot mode buffers")
-
 (defvar dot-mode-global-mode t
   "Should dot-mode share its command buffer between buffers?")
 
@@ -393,8 +385,12 @@ or even saved for later use with name-last-kbd-macro"
   "Dot mode mimics the `.' function in vi, repeating sequences of
 commands and/or typing delimited by motion events.  Use `C-.'
 rather than just `.'."
-  nil " Dot" dot-mode-map
-
+  nil " Dot"
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-.")   'dot-mode-execute)
+    (define-key map (kbd "C-M-.") 'dot-mode-override)
+    (define-key map (kbd "C-c .") 'dot-mode-copy-to-last-kbd-macro)
+    map)
   (if (not dot-mode)
       (progn
         (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
