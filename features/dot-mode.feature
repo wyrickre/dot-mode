@@ -18,12 +18,9 @@ Feature: Repeats changes to buffer
   Scenario: Use commands twice
     Given I go to point "10"
     And I press "C-k"
-    And I press "C-b"
-    And I press "C-b"
-    And I press "C-b"
-    And I press "C-b"
+    And I press "C-4 C-b"
     And I press "C-."
-    Then I should see:
+    Then I should only see:
     """
     Hello
     """
@@ -35,4 +32,21 @@ Feature: Repeats changes to buffer
     And I execute the action chain
     Then I should see "Hell"
     Given I press "C-."
+    Then I should only see "Hel"
+
+  Scenario: Captures extended commands that prompt for input
+    Given I start an action chain
+    And I press "M-x"
+    And I type "insert-char"
+    And I press "<return>"
+    And I press "69"
+    And I execute the action chain
+    Then I should see "Heli"
+
+Feature: Integrates with smex
+  In order to use both dot-mode and smex
+  I want to not have to worry about it
+
+  Scenario: Captures smex extended commands
+    Given I load smex
     Then I should see "Hel"

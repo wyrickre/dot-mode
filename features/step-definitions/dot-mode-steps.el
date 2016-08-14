@@ -2,27 +2,15 @@
 ;; files in this directory whose names end with "-steps.el" will be
 ;; loaded automatically by Ecukes.
 
-(Given "^I have \"\\(.+\\)\"$"
-  (lambda (something)
-    ;; ...
-    ))
+(Given "^I load smex$"
+  (lambda ()
+    (require 'smex)))
 
-(When "^I have \"\\(.+\\)\"$"
-  (lambda (something)
-    ;; ...
-    ))
-
-(Then "^I should have \"\\(.+\\)\"$"
-  (lambda (something)
-    ;; ...
-    ))
-
-(And "^I have \"\\(.+\\)\"$"
-  (lambda (something)
-    ;; ...
-    ))
-
-(But "^I should not have \"\\(.+\\)\"$"
-  (lambda (something)
-    ;; ...
-    ))
+;; NOTE Don't have a generalised version for see vs only see because espuds
+;; already has a (Then "^I should see$") step
+(Then "^I should only see\\(?: \"\\(.+\\)\"\\|:\\)$"
+  "Asserts that the current buffer just has some text."
+  (lambda (expected)
+    (let ((actual (buffer-string))
+          (message "Expected\n%s\nto match:\n%s"))
+      (cl-assert (string= expected actual) nil message expected actual))))
