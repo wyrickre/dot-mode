@@ -241,21 +241,7 @@
 (defvar dot-mode-minibuffer-input nil
   "Global buffer to capture minibuffer input")
 
-;; The below statements are another possible definition of dot-mode-command-keys
-;; that I *think* will work.  It hasn't been well tested so I'm leaving it
-;; out for now.  This was written at the same time I found this-command-keys-vector.
-;; Since I don't know what version of emacs has that func, I was working on
-;; the below as an alternate work-around.
-;; ------------------------------------------------------------------------
-;;  ((and (boundp 'current-prefix-arg)
-;;        (boundp 'meta-prefix-char)
-;;        (fboundp 'this-single-command-keys)) ;; also see this-single-command-raw-keys
-;;   (defun dot-mode-command-keys ()
-;;     (if (null current-prefix-arg)
-;;         (this-single-command-keys)
-;;       (vconcat (char-to-string meta-prefix-char) (number-to-string current-prefix-arg) (this-single-command-keys)))))
-
-(fset 'dot-mode-command-keys (symbol-function 'this-command-keys-vector))
+(defalias 'dot-mode-command-keys 'this-command-keys-vector)
 
 (defun dot-mode-copy-to-last-kbd-macro ()
   "Copy the current dot-mode command buffer to the last-kbd-macro variable.
