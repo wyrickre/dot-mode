@@ -227,6 +227,9 @@
 (defvar dot-mode-minibuffer-input nil
   "Global buffer to capture minibuffer input")
 
+(defvar dot-mode-verbose t
+  "Message the user every time a repeat happens")
+
 (defun dot-mode-copy-to-last-kbd-macro ()
   "Copy the current `dot-mode' command buffer to the `last-kbd-macro' variable.
 Then it can be called with `call-last-kbd-macro', named with
@@ -269,14 +272,16 @@ Then it can be called with `call-last-kbd-macro', named with
       (message "Nothing to repeat")
     (dot-mode-remove-hooks)
     ;; Do the business
-    (message "Repeating \"%s\"" (dot-mode-buffer-to-string))
+    (when dot-mode-verbose
+      (message "Repeating \"%s\"" (dot-mode-buffer-to-string)))
     (condition-case nil
         (execute-kbd-macro dot-mode-cmd-buffer)
       ((error quit exit)
        (setq dot-mode-cmd-buffer nil
              dot-mode-state      0)
        (message "Dot mode reset")))
-    (if (not (null dot-mode-cmd-buffer))
+    (if (and (not (null dot-mode-cmd-buffer))
+             dot-mode-verbose)
         ;; I message before AND after a macro execution.
         ;; On XEmacs, I never saw the Repeating message above...
         ;; Besides, this way you'll know if your macro somehow
