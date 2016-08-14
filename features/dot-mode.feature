@@ -103,3 +103,23 @@ Feature: Integrates with smex
     Then I should only see "aa"
     Given I press "C-."
     Then I should only see "a"
+
+Feature: Can override motion commands
+  In order to include motion commands
+  As a dot-mode user
+  I use dot-mode-override
+
+  Scenario: Override backwards-char
+    Given I clear the buffer
+    And I press "C-l"
+    And I start an action chain
+    And I press "a"
+    And I press "C-M-."
+    And I press "C-b"
+    And I press "b"
+    And I execute the action chain
+    Then I should only see "ba"
+    And the cursor should be at point "2"
+    Given I press "C-."
+    Then the cursor should be at point "3"
+    And I should only see "bbaa"
