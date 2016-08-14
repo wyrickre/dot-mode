@@ -230,30 +230,9 @@
 (defvar dot-mode-verbose t
   "Message the user every time a repeat happens")
 
-(defun dot-mode-copy-to-last-kbd-macro ()
-  "Copy the current `dot-mode' command buffer to the `last-kbd-macro' variable.
-Then it can be called with `call-last-kbd-macro', named with
-`name-last-kbd-macro', or even saved for later use with
-`name-last-kbd-macro'"
-  (interactive)
-  (if (null dot-mode-cmd-buffer)
-      (message "Nothing to copy.")
-    (setq last-kbd-macro dot-mode-cmd-buffer)
-    (message "Copied.")))
-
 (defun dot-mode-buffer-to-string ()
   "Return the macro buffer as a string."
   (kmacro-display dot-mode-cmd-buffer))
-
-(defun dot-mode-remove-hooks ()
-  (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
-  (remove-hook 'post-command-hook 'dot-mode-loop t)
-  (remove-hook 'after-change-functions 'dot-mode-after-change t))
-
-(defun dot-mode-add-hooks ()
-  (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
-  (add-hook 'post-command-hook 'dot-mode-loop nil t)
-  (add-hook 'after-change-functions 'dot-mode-after-change nil t))
 
 (defun dot-mode-minibuffer-exit ()
   "Catch minibuffer exit"
@@ -263,38 +242,6 @@ Then it can be called with `call-last-kbd-macro', named with
   ;; the first arg would be the only one to get recorded since `exit-minibuffer'
   ;; is called between each argument.
   (push (minibuffer-contents) dot-mode-minibuffer-input))
-
-(defun dot-mode-execute ()
-  "Execute stored commands."
-  (interactive)
-  ;; Don't want execution to kick off infinite recursion
-  (if (null dot-mode-cmd-buffer)
-      (message "Nothing to repeat")
-    (dot-mode-remove-hooks)
-    ;; Do the business
-    (when dot-mode-verbose
-      (message "Repeating \"%s\"" (dot-mode-buffer-to-string)))
-    (condition-case nil
-        (execute-kbd-macro dot-mode-cmd-buffer)
-      ((error quit exit)
-       (setq dot-mode-cmd-buffer nil
-             dot-mode-state      0)
-       (message "Dot mode reset")))
-    (if (and (not (null dot-mode-cmd-buffer))
-             dot-mode-verbose)
-        ;; I message before AND after a macro execution.
-        ;; On XEmacs, I never saw the Repeating message above...
-        ;; Besides, this way you'll know if your macro somehow
-        ;; hangs during execution (on GNU Emacs, anyway).
-        (message "Repeated \"%s\"" (dot-mode-buffer-to-string)))
-    ;; Put the hooks back
-    (dot-mode-add-hooks)))
-
-(defun dot-mode-override ()
-  "Unconditionally store next keystroke."
-  (interactive)
-  (setq dot-mode-state (+ dot-mode-state 2))
-  (message "dot-mode will remember the next keystroke..."))
 
 (defun dot-mode-after-change (start end prevlen)
   "Dot mode's `after-change-functions' hook"
@@ -370,6 +317,7 @@ Then it can be called with `call-last-kbd-macro', named with
 ;;                         "Recording buffer changes"
 ;;                         "Override from recording"
 ;;                         "Override from initial")))
+
 (defun dot-mode-loop ()
   "The heart of dot mode."
   ;; (message "in:\tstate: \"%s\"\n\tcommand: \"%S\""
@@ -392,6 +340,63 @@ Then it can be called with `call-last-kbd-macro', named with
   ;; (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   )
 
+(defun dot-mode-remove-hooks ()
+  (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
+  (remove-hook 'post-command-hook 'dot-mode-loop t)
+  (remove-hook 'after-change-functions 'dot-mode-after-change t))
+
+(defun dot-mode-add-hooks ()
+  (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
+  (add-hook 'post-command-hook 'dot-mode-loop nil t)
+  (add-hook 'after-change-functions 'dot-mode-after-change nil t))
+
+;;;###autoload
+(defun dot-mode-copy-to-last-kbd-macro ()
+  "Copy the current `dot-mode' command buffer to the `last-kbd-macro' variable.
+Then it can be called with `call-last-kbd-macro', named with
+`name-last-kbd-macro', or even saved for later use with
+`name-last-kbd-macro'"
+  (interactive)
+  (if (null dot-mode-cmd-buffer)
+      (message "Nothing to copy.")
+    (setq last-kbd-macro dot-mode-cmd-buffer)
+    (message "Copied.")))
+
+;;;###autoload
+(defun dot-mode-execute ()
+  "Execute stored commands."
+  (interactive)
+  ;; Don't want execution to kick off infinite recursion
+  (if (null dot-mode-cmd-buffer)
+      (message "Nothing to repeat")
+    (dot-mode-remove-hooks)
+    ;; Do the business
+    (when dot-mode-verbose
+      (message "Repeating \"%s\"" (dot-mode-buffer-to-string)))
+    (condition-case nil
+        (execute-kbd-macro dot-mode-cmd-buffer)
+      ((error quit exit)
+       (setq dot-mode-cmd-buffer nil
+             dot-mode-state      0)
+       (message "Dot mode reset")))
+    (if (and (not (null dot-mode-cmd-buffer))
+             dot-mode-verbose)
+        ;; I message before AND after a macro execution.
+        ;; On XEmacs, I never saw the Repeating message above...
+        ;; Besides, this way you'll know if your macro somehow
+        ;; hangs during execution (on GNU Emacs, anyway).
+        (message "Repeated \"%s\"" (dot-mode-buffer-to-string)))
+    ;; Put the hooks back
+    (dot-mode-add-hooks)))
+
+;;;###autoload
+(defun dot-mode-override ()
+  "Unconditionally store next keystroke."
+  (interactive)
+  (setq dot-mode-state (+ dot-mode-state 2))
+  (message "dot-mode will remember the next keystroke..."))
+
+;;;###autoload
 (define-minor-mode dot-mode
   "Dot mode mimics the `.' function in vi, repeating sequences of
 commands and/or typing delimited by motion events.  Use `C-.'
@@ -420,12 +425,15 @@ rather than just `.'."  nil " Dot"
             dot-mode-cmd-buffer   nil
             dot-mode-cmd-keys     nil))))
 
+;;;###autoload
 (defun dot-mode-on ()
   "Turn on dot-mode."
   (interactive)
   (unless (minibufferp) (dot-mode 1)))
 
+;;;###autoload
 (defalias 'turn-on-dot-mode 'dot-mode-on)
+;;;###autoload
 (define-global-minor-mode global-dot-mode dot-mode dot-mode-on)
 
 (provide 'dot-mode)
