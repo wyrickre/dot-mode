@@ -275,8 +275,7 @@ or even saved for later use with name-last-kbd-macro"
   ;; Unfortunately, if an extended command asks for 2 or more arguments,
   ;; the first arg would be the only one to get recorded since exit-minibuffer
   ;; is called between each argument.
-  (setq dot-mode-minibuffer-input
-        (concat dot-mode-minibuffer-input (minibuffer-contents) "\r")))
+  (push (minibuffer-contents) dot-mode-minibuffer-input))
 
 (defun dot-mode-execute ()
   "Execute stored commands."
@@ -319,8 +318,19 @@ or even saved for later use with name-last-kbd-macro"
          (unless dot-mode-changed
            (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
            (unless (null dot-mode-minibuffer-input)
-             (setq dot-mode-cmd-keys (vconcat dot-mode-cmd-keys
-                                              dot-mode-minibuffer-input)))))
+             ;; The first item in this list is what was in the minibuffer
+             ;; after choosing the command from either
+             ;; `execute-extended-command' or `smex'.
+             ;; This may very well not be the name of the command, so we
+             ;; replace it with the head of the list
+             ;; `extended-command-history'.
+             (setq dot-mode-cmd-keys
+                   (vconcat dot-mode-cmd-keys
+                            (mapconcat
+                             #'identity
+                             (cons (car extended-command-history)
+                                   (cdr (nreverse dot-mode-minibuffer-input)))
+                             "\r"))))))
         ;; Normal mode
         (dot-mode-cmd-keys
          (setq dot-mode-cmd-keys (dot-mode-command-keys))))
@@ -343,7 +353,7 @@ or even saved for later use with name-last-kbd-macro"
 
   (cond
    ;; Is this an execute-extended-command?
-   ((eq this-command 'execute-extended-command)
+   ((member this-command '(execute-extended-command smex))
     (setq dot-mode-minibuffer-input nil
           ;; Must get this (M-x) now!  It's gone later.
           dot-mode-cmd-keys         (dot-mode-command-keys)
