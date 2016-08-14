@@ -25,6 +25,8 @@ Feature: Repeats changes to buffer
     Hello
     """
 
+Feature: Captures extended commands
+
   Scenario: Captures extended commands
     Given I start an action chain
     And I press "M-x"
@@ -45,10 +47,32 @@ Feature: Repeats changes to buffer
     Given I press "C-."
     Then I should only see "Helii"
 
+  Scenario: Works no matter what key execute-extended-command is bound to
+    Given I bind "execute-extended-command" to "C-'"
+    And I start an action chain
+    And I press "C-'"
+    And I type "insert-char"
+    And I press "<return>"
+    And I press "69"
+    And I execute the action chain
+    Then I should only see "Heliii"
+    Given I press "C-."
+    Then I should only see "Heliiii"
+
+
 Feature: Integrates with smex
   In order to use both dot-mode and smex
   I want to not have to worry about it
 
   Scenario: Captures smex extended commands
     Given I load smex
-    Then I should see "Hel"
+    And I clear the buffer
+    And I insert "aaa"
+    Then I should only see "aaa"
+    Given I start an action chain
+    And I press "M-x"
+    And I type "backward-delete-char"
+    And I execute the action chain
+    Then I should only see "aa"
+    Given I press "C-."
+    Then I should only see "a"

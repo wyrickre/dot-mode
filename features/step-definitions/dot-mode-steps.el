@@ -4,7 +4,8 @@
 
 (Given "^I load smex$"
   (lambda ()
-    (require 'smex)))
+    (require 'smex)
+    (global-set-key (kbd "M-x") 'smex)))
 
 ;; NOTE Don't have a generalised version for see vs only see because espuds
 ;; already has a (Then "^I should see$") step
@@ -14,3 +15,7 @@
     (let ((actual (buffer-string))
           (message "Expected\n%s\nto match:\n%s"))
       (cl-assert (string= expected actual) nil message expected actual))))
+
+(Given "^I bind \"\\([^\"]+\\)\" to \"\\([^\"]+\\)\"$"
+  (lambda (command key)
+    (global-set-key (kbd key) (intern command))))
