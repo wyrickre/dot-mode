@@ -227,8 +227,6 @@
 (defvar dot-mode-minibuffer-input nil
   "Global buffer to capture minibuffer input")
 
-(defalias 'dot-mode-command-keys 'this-command-keys-vector)
-
 (defun dot-mode-copy-to-last-kbd-macro ()
   "Copy the current `dot-mode' command buffer to the `last-kbd-macro' variable.
 Then it can be called with `call-last-kbd-macro', named with
@@ -330,7 +328,7 @@ Then it can be called with `call-last-kbd-macro', named with
                              "\r"))))))
         ;; Normal mode
         (dot-mode-cmd-keys
-         (setq dot-mode-cmd-keys (dot-mode-command-keys))))
+         (setq dot-mode-cmd-keys (this-command-keys-vector))))
   ;; Else, do nothing `dot-mode-cmd-keys' will remain `nil'.
   ;; (Only happens on `ignore-undo')
   (when dot-mode-cmd-keys
@@ -353,7 +351,7 @@ Then it can be called with `call-last-kbd-macro', named with
    ((member this-command '(execute-extended-command smex))
     (setq dot-mode-minibuffer-input nil
           ;; Must get this (M-x) now!  It's gone later.
-          dot-mode-cmd-keys         (dot-mode-command-keys)
+          dot-mode-cmd-keys         (this-command-keys-vector)
           ;; ignore an override
           dot-mode-changed          nil)
     ;; Must be a global hook
@@ -365,7 +363,7 @@ Then it can be called with `call-last-kbd-macro', named with
     ;; we get  plus the following key (and we're guaranteed to change the
     ;; buffer)
     (setq dot-mode-cmd-keys (or (eq this-command 'quoted-insert)
-                                (dot-mode-command-keys))))
+                                (this-command-keys-vector))))
    ;; Should we ignore this key sequence? (is it an undo?)
    ((and dot-mode-ignore-undo
          (member this-command '(advertised-undo undo undo-tree-undo undo-tree-redo)))
