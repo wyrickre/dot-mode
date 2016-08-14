@@ -365,10 +365,16 @@ Then it can be called with `call-last-kbd-macro', named with
    ;; signal to read later (in `dot-mode-after-change')
    (t (setq dot-mode-cmd-keys t))))
 
+;; (defun dot-mode--state-name ()
+;;   (nth dot-mode-state '("Initial (no changes)"
+;;                         "Recording buffer changes"
+;;                         "Override from recording"
+;;                         "Override from initial")))
 (defun dot-mode-loop ()
   "The heart of dot mode."
-  ;;  (message "in: state is %d" dot-mode-state)
-  ;;  (message "in: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
+  ;; (message "in:\tstate: \"%s\"\n\tcommand: \"%S\""
+  ;;          (dot-mode--state-name) this-command)
+  ;; (message "in: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   (cond ((= dot-mode-state 0)           ; idle
          (if dot-mode-changed
              (setq dot-mode-state       1
@@ -382,8 +388,8 @@ Then it can be called with `call-last-kbd-macro', named with
         (t ; = 2 or 3                   ; override
          (setq dot-mode-state       (- dot-mode-state 2)
                dot-mode-changed     t)))
-  ;;  (message "out: state is %d" dot-mode-state)
-  ;;  (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
+  ;; (message "out: state is \"%s\"" (dot-mode--state-name))
+  ;; (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   )
 
 (define-minor-mode dot-mode

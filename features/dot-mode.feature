@@ -109,17 +109,47 @@ Feature: Can override motion commands
   As a dot-mode user
   I use dot-mode-override
 
-  Scenario: Override backwards-char
+  Scenario: Override in the middle
     Given I clear the buffer
     And I press "C-l"
     And I start an action chain
-    And I press "a"
+    And I type "a"
     And I press "C-M-."
     And I press "C-b"
-    And I press "b"
+    And I type "b"
     And I execute the action chain
     Then I should only see "ba"
     And the cursor should be at point "2"
     Given I press "C-."
     Then the cursor should be at point "3"
     And I should only see "bbaa"
+
+  Scenario: Override at beginning of command
+    Given I clear the buffer
+    And I insert:
+    """
+    First line
+    Second line
+    Third line
+    """
+    And I go to beginning of buffer
+    And I start an action chain
+    And I press "C-M-."
+    And I press "C-n"
+    And I press "C-M-."
+    And I press "C-e"
+    And I type " modified"
+    And I execute the action chain
+    Then I should only see:
+    """
+    First line
+    Second line modified
+    Third line
+    """
+    Given I press "C-."
+    Then I should only see:
+    """
+    First line
+    Second line modified
+    Third line modified
+    """
