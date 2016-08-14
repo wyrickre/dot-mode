@@ -202,10 +202,6 @@
 ;;; Make calls to make-local-hook optional for Emacs 24 compatibility.
 ;;; Use kmacro-display for displaying the macro string.
 
-(defvar dot-mode nil
-  "Whether dot mode is on or not")
-(make-variable-buffer-local 'dot-mode)
-
 (defvar dot-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-.")   'dot-mode-execute)
@@ -213,8 +209,6 @@
     (define-key map (kbd "C-c .") 'dot-mode-copy-to-last-kbd-macro)
     map)
   "Keymap used in dot mode buffers")
-
-(add-minor-mode 'dot-mode " Dot" dot-mode-map) ;; depends on add-minor-mode
 
 (defvar dot-mode-global-mode t
   "Should dot-mode share its command buffer between buffers?")
@@ -396,18 +390,12 @@ or even saved for later use with name-last-kbd-macro"
   ;;  (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   )
 
-(defun dot-mode (arg)
-  "Toggle dot mode.
-With arg, turn dot mode on iff arg is positive.
+(define-minor-mode dot-mode
+  "Dot mode mimics the `.' function in vi, repeating sequences of
+commands and/or typing delimited by motion events.  Use `C-.'
+rather than just `.'."
+  nil " Dot" dot-mode-map
 
-Dot mode mimics the `.' function in vi, repeating sequences of
-commands and/or typing delimited by motion events.  Use `C-.' rather
-than just `.'."
-  (interactive "P")
-  (setq dot-mode
-        (if (null arg)
-            (not dot-mode)
-          (> (prefix-numeric-value arg) 0)))
   (if (not dot-mode)
       (progn
         (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
@@ -431,8 +419,8 @@ than just `.'."
       (setq dot-mode-state        0
             dot-mode-changed      nil
             dot-mode-cmd-buffer   nil
-            dot-mode-cmd-keys     nil)))
-  (force-mode-line-update))
+            dot-mode-cmd-keys     nil))))
+
 
 (defun dot-mode-on ()
   "Turn on dot-mode."
