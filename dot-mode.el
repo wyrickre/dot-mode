@@ -254,6 +254,16 @@ or even saved for later use with name-last-kbd-macro"
   "Return the macro buffer as a string."
   (kmacro-display dot-mode-cmd-buffer))
 
+(defun dot-mode-remove-hooks ()
+  (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
+  (remove-hook 'post-command-hook 'dot-mode-loop t)
+  (remove-hook 'after-change-functions 'dot-mode-after-change t))
+
+(defun dot-mode-add-hooks ()
+  (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
+  (add-hook 'post-command-hook 'dot-mode-loop nil t)
+  (add-hook 'after-change-functions 'dot-mode-after-change nil t))
+
 (defun dot-mode-minibuffer-exit ()
   "Catch minibuffer exit"
   ;; Just store it as a string buffer...
@@ -274,9 +284,7 @@ or even saved for later use with name-last-kbd-macro"
   ;; Don't want execution to kick off infinite recursion
   (if (null dot-mode-cmd-buffer)
       (message "Nothing to repeat")
-    (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
-    (remove-hook 'post-command-hook 'dot-mode-loop t)
-    (remove-hook 'after-change-functions 'dot-mode-after-change t)
+    (dot-mode-remove-hooks)
     ;; Do the business
     (message "Repeating \"%s\"" (dot-mode-buffer-to-string))
     (condition-case nil
@@ -292,9 +300,7 @@ or even saved for later use with name-last-kbd-macro"
         ;; hangs during execution (on GNU Emacs, anyway).
         (message "Repeated \"%s\"" (dot-mode-buffer-to-string)))
     ;; Put the hooks back
-    (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
-    (add-hook 'post-command-hook 'dot-mode-loop nil t)
-    (add-hook 'after-change-functions 'dot-mode-after-change nil t)))
+    (dot-mode-add-hooks)))
 
 (defun dot-mode-override ()
   "Override standard behaviour and store next keystroke no matter what."
@@ -392,14 +398,8 @@ rather than just `.'."
     (define-key map (kbd "C-c .") 'dot-mode-copy-to-last-kbd-macro)
     map)
   (if (not dot-mode)
-      (progn
-        (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
-        (remove-hook 'post-command-hook 'dot-mode-loop t)
-        (remove-hook 'after-change-functions 'dot-mode-after-change t))
-    ;; ELSE
-    (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
-    (add-hook 'post-command-hook 'dot-mode-loop nil t)
-    (add-hook 'after-change-functions 'dot-mode-after-change nil t)
+      (dot-mode-remove-hooks)
+    (dot-mode-add-hooks)
     (if dot-mode-global-mode
         (progn
           (kill-local-variable 'dot-mode-cmd-buffer)
