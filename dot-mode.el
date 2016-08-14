@@ -251,8 +251,7 @@ or even saved for later use with name-last-kbd-macro"
   (if (null dot-mode-cmd-buffer)
       (message "Nothing to copy.")
     (setq last-kbd-macro dot-mode-cmd-buffer)
-    (message "Copied."))
-)
+    (message "Copied.")))
 
 (defun dot-mode-event-to-string (ev)
   "Return the event as a string."
@@ -274,15 +273,14 @@ or even saved for later use with name-last-kbd-macro"
   ;; Just store it as a string buffer...
   ;;     On X Emacs, we'll call character-to-event later
   ;;     On GNU Emacs, vconcat will handle strings
-  (setq dot-mode-minibuffer-input
-        (concat dot-mode-minibuffer-input (minibuffer-contents) "\r"))
 
   ;; I'd really like to check this-command to see if it's exit-minibuffer
   ;; and remove this function from the minibuffer-exit-hook if it is.
   ;; Unfortunately, if an extended command asks for 2 or more arguments,
   ;; the first arg would be the only one to get recorded since exit-minibuffer
   ;; is called between each argument.
-)
+  (setq dot-mode-minibuffer-input
+        (concat dot-mode-minibuffer-input (minibuffer-contents) "\r")))
 
 (defun dot-mode-execute ()
   "Execute stored commands."
@@ -295,7 +293,7 @@ or even saved for later use with name-last-kbd-macro"
     (remove-hook 'after-change-functions 'dot-mode-after-change t)
     ;; Do the business
     (message "Repeating \"%s\"" (dot-mode-buffer-to-string))
-     (condition-case nil
+    (condition-case nil
         (execute-kbd-macro dot-mode-cmd-buffer)
       ((error quit exit)
        (setq dot-mode-cmd-buffer nil
@@ -310,9 +308,7 @@ or even saved for later use with name-last-kbd-macro"
     ;; Put the hooks back
     (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
     (add-hook 'post-command-hook 'dot-mode-loop nil t)
-    (add-hook 'after-change-functions 'dot-mode-after-change nil t)
-  )
-)
+    (add-hook 'after-change-functions 'dot-mode-after-change nil t)))
 
 (defun dot-mode-override ()
   "Override standard behaviour and store next keystroke no matter what."
@@ -324,31 +320,22 @@ or even saved for later use with name-last-kbd-macro"
   "Dot mode's after-change-functions hook"
   ;; By the time we get here, dot-mode-pre-hook has already setup
   ;; dot-mode-cmd-keys.  It'll be a vector, t, or nil.
-
-  (cond ((vectorp dot-mode-cmd-keys) ;; we just did an execute-extended-command
-                                     ;; or an override
-
-         (if (not dot-mode-changed)     ;; if dot-mode-changed is t, we're in override
-             (progn
-               ;; remove hook
-               (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
-               (if (not (null dot-mode-minibuffer-input))
-                   (setq dot-mode-cmd-keys (vconcat dot-mode-cmd-keys
-                                                    dot-mode-minibuffer-input))
-               )
-             )
-           ;; ELSE - we're in override and the keys have already been read
-         )
-        )
+  (cond ((vectorp dot-mode-cmd-keys)
+         ;; We just did `execute-extended-command' or an override.
+         ;; If we're in override, the keys have already been read and
+         ;; `dot-mode-changed' is `t'
+         (unless dot-mode-changed
+           (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
+           (unless (null dot-mode-minibuffer-input)
+             (setq dot-mode-cmd-keys (vconcat dot-mode-cmd-keys
+                                              dot-mode-minibuffer-input)))))
         ;; Normal mode
         (dot-mode-cmd-keys
-         (setq dot-mode-cmd-keys (dot-mode-command-keys))
-        )
-        ;; Else, do nothing dot-mode-cmd-keys will remain nil. (Only happens on ignore-undo)
-  )
-  (if dot-mode-cmd-keys
-      (setq dot-mode-changed t))
-)
+         (setq dot-mode-cmd-keys (dot-mode-command-keys))))
+  ;; Else, do nothing `dot-mode-cmd-keys' will remain `nil'.
+  ;; (Only happens on ignore-undo)
+  (when dot-mode-cmd-keys
+    (setq dot-mode-changed t)))
 
 (defun dot-mode-pre-hook ()
   "Dot mode's pre-command-hook"
@@ -368,11 +355,10 @@ or even saved for later use with name-last-kbd-macro"
     (setq dot-mode-minibuffer-input nil
           ;; Must get this (M-x) now!  It's gone later.
           dot-mode-cmd-keys         (dot-mode-command-keys)
-          dot-mode-changed          nil ;; ignore an override
-    )
+          ;; ignore an override
+          dot-mode-changed          nil)
     ;; Must be a global hook
-    (add-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
-   )
+    (add-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit))
    (dot-mode-changed            ;; on override, dot-mode-changed is t
     ;; Always read the keys here on override _UNLESS_ it's a quoted-insert.
     ;; This is to make sure we capture keys that don't change the buffer.
@@ -380,44 +366,35 @@ or even saved for later use with name-last-kbd-macro"
     ;; we get  plus the following key (and we're guaranteed to change the
     ;; buffer)
     (setq dot-mode-cmd-keys (or (eq this-command 'quoted-insert)
-                                (dot-mode-command-keys)))
-   )
+                                (dot-mode-command-keys))))
    ;; Should we ignore this key sequence? (is it an undo?)
    ((and dot-mode-ignore-undo
          (or (eq this-command 'advertised-undo)
              (eq this-command 'undo)))
-    (setq dot-mode-cmd-keys nil)
-   )
-   (t
-    (setq dot-mode-cmd-keys t)  ;; signal to read later (in dot-mode-after-change)
-   )
-  )
-)
+    (setq dot-mode-cmd-keys nil))
+   ;; signal to read later (in dot-mode-after-change)
+   (t (setq dot-mode-cmd-keys t))))
 
 (defun dot-mode-loop ()
   "The heart of dot mode."
-;;  (message "in: state is %d" dot-mode-state)
-;;  (message "in: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
+  ;;  (message "in: state is %d" dot-mode-state)
+  ;;  (message "in: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   (cond ((= dot-mode-state 0)           ; idle
          (if dot-mode-changed
              (setq dot-mode-state       1
                    dot-mode-changed     nil
-                   dot-mode-cmd-buffer  dot-mode-cmd-keys))
-        )
+                   dot-mode-cmd-buffer  dot-mode-cmd-keys)))
         ((= dot-mode-state 1)           ; recording
          (if dot-mode-changed
              (setq dot-mode-changed     nil
                    dot-mode-cmd-buffer  (vconcat dot-mode-cmd-buffer dot-mode-cmd-keys))
-           (setq dot-mode-state 0))
-        )
+           (setq dot-mode-state 0)))
         (t ; = 2 or 3                   ; override
          (setq dot-mode-state       (- dot-mode-state 2)
-               dot-mode-changed     t)
-        )
+               dot-mode-changed     t)))
+  ;;  (message "out: state is %d" dot-mode-state)
+  ;;  (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   )
-;;  (message "out: state is %d" dot-mode-state)
-;;  (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
-)
 
 (defun dot-mode (arg)
   "Toggle dot mode.
@@ -435,8 +412,7 @@ than just `.'."
       (progn
         (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
         (remove-hook 'post-command-hook 'dot-mode-loop t)
-        (remove-hook 'after-change-functions 'dot-mode-after-change t)
-      )
+        (remove-hook 'after-change-functions 'dot-mode-after-change t))
     ;; ELSE
     (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
     (add-hook 'post-command-hook 'dot-mode-loop nil t)
@@ -446,8 +422,7 @@ than just `.'."
           (kill-local-variable 'dot-mode-cmd-buffer)
           (kill-local-variable 'dot-mode-cmd-keys)
           (kill-local-variable 'dot-mode-state)
-          (kill-local-variable 'dot-mode-changed)
-        )
+          (kill-local-variable 'dot-mode-changed))
       ;; ELSE
       (make-local-variable 'dot-mode-cmd-buffer)
       (make-local-variable 'dot-mode-cmd-keys)
@@ -456,13 +431,8 @@ than just `.'."
       (setq dot-mode-state        0
             dot-mode-changed      nil
             dot-mode-cmd-buffer   nil
-            dot-mode-cmd-keys     nil
-      )
-    )
-  )
-  (force-mode-line-update)
-;;  (set-buffer-modified-p (buffer-modified-p)) ;; Why was I doing this?
-)
+            dot-mode-cmd-keys     nil)))
+  (force-mode-line-update))
 
 (defun dot-mode-on ()
   "Turn on dot-mode."
