@@ -2,9 +2,16 @@
 ;; files in this directory whose names end with "-steps.el" will be
 ;; loaded automatically by Ecukes.
 
-(Given "^I load smex$"
+(Given "^I load \"\\([^\"]+\\)\"$"
+  (lambda (library)
+    (require (intern library))))
+
+(And "^I activate undo-tree$"
   (lambda ()
-    (require 'smex)
+    (undo-tree-mode 1)))
+
+(And "^I bind M-x to smex$"
+  (lambda ()
     (global-set-key (kbd "M-x") 'smex)))
 
 ;; NOTE Don't have a generalised version for see vs only see because espuds

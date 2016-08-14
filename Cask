@@ -5,5 +5,6 @@
 
 (development
  (depends-on "smex")
+ (depends-on "undo-tree")
  (depends-on "ecukes")
  (depends-on "espuds"))

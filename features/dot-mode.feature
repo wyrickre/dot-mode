@@ -60,12 +60,39 @@ Feature: Captures extended commands
     Then I should only see "Heliiii"
 
 
+Feature: Ignores undo
+  To keep things understandable
+  Dot mode should ignore undo commands
+
+  Scenario: Ignores the undo command
+    Given I clear the buffer
+    # Press a command to break apart the current command
+    And I press "C-l"
+    And I type "Goodbye"
+    Then I should only see "Goodbye"
+    Given I press "C-/"
+    Then the buffer should be empty
+    Given I press "C-."
+    Then I should only see "Goodbye"
+
+  Scenario: Ignores undo-tree-undo and undo-tree-redo
+    Given I load "undo-tree"
+    And I activate undo-tree
+    And I clear the buffer
+    And I press "C-l"
+    And I type "Goodbye"
+    Given I press "C-/"
+    Then the buffer should be empty
+    Given I press "C-."
+    Then I should only see "Goodbye"
+
 Feature: Integrates with smex
   In order to use both dot-mode and smex
   I want to not have to worry about it
 
   Scenario: Captures smex extended commands
-    Given I load smex
+    Given I load "smex"
+    And I bind M-x to smex
     And I clear the buffer
     And I insert "aaa"
     Then I should only see "aaa"

@@ -353,7 +353,7 @@ or even saved for later use with name-last-kbd-macro"
           dot-mode-changed          nil)
     ;; Must be a global hook
     (add-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit))
-   (dot-mode-changed            ;; on override, dot-mode-changed is t
+   (dot-mode-changed ;; on override, dot-mode-changed is t
     ;; Always read the keys here on override _UNLESS_ it's a quoted-insert.
     ;; This is to make sure we capture keys that don't change the buffer.
     ;; On quoted-insert, all we get here is , but in dot-mode-after-change,
@@ -363,8 +363,7 @@ or even saved for later use with name-last-kbd-macro"
                                 (dot-mode-command-keys))))
    ;; Should we ignore this key sequence? (is it an undo?)
    ((and dot-mode-ignore-undo
-         (or (eq this-command 'advertised-undo)
-             (eq this-command 'undo)))
+         (member this-command '(advertised-undo undo undo-tree-undo undo-tree-redo)))
     (setq dot-mode-cmd-keys nil))
    ;; signal to read later (in dot-mode-after-change)
    (t (setq dot-mode-cmd-keys t))))
