@@ -104,6 +104,17 @@ Feature: Integrates with smex
     Given I press "C-."
     Then I should only see "a"
 
+  Scenario: Captures smex extended commands with minibuffer text
+    Given I start an action chain
+    And I press "M-x"
+    And I type "insert-char"
+    And I press "<return>"
+    And I press "69"
+    And I execute the action chain
+    Then I should only see "ai"
+    Given I press "C-."
+    Then I should only see "aii"
+
 Feature: Can override motion commands
   In order to include motion commands
   As a dot-mode user
