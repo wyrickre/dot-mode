@@ -230,9 +230,10 @@
 (defalias 'dot-mode-command-keys 'this-command-keys-vector)
 
 (defun dot-mode-copy-to-last-kbd-macro ()
-  "Copy the current dot-mode command buffer to the last-kbd-macro variable.
-Then it can be called with call-last-kbd-macro, named with name-last-kbd-macro,
-or even saved for later use with name-last-kbd-macro"
+  "Copy the current `dot-mode' command buffer to the `last-kbd-macro' variable.
+Then it can be called with `call-last-kbd-macro', named with
+`name-last-kbd-macro', or even saved for later use with
+`name-last-kbd-macro'"
   (interactive)
   (if (null dot-mode-cmd-buffer)
       (message "Nothing to copy.")
@@ -266,14 +267,10 @@ or even saved for later use with name-last-kbd-macro"
 
 (defun dot-mode-minibuffer-exit ()
   "Catch minibuffer exit"
-  ;; Just store it as a string buffer...
-  ;;     On X Emacs, we'll call character-to-event later
-  ;;     On GNU Emacs, vconcat will handle strings
-
-  ;; I'd really like to check this-command to see if it's exit-minibuffer
-  ;; and remove this function from the minibuffer-exit-hook if it is.
+  ;; I'd really like to check `this-command' to see if it's `exit-minibuffer'
+  ;; and remove this function from the `minibuffer-exit-hook' if it is.
   ;; Unfortunately, if an extended command asks for 2 or more arguments,
-  ;; the first arg would be the only one to get recorded since exit-minibuffer
+  ;; the first arg would be the only one to get recorded since `exit-minibuffer'
   ;; is called between each argument.
   (push (minibuffer-contents) dot-mode-minibuffer-input))
 
@@ -302,15 +299,15 @@ or even saved for later use with name-last-kbd-macro"
     (dot-mode-add-hooks)))
 
 (defun dot-mode-override ()
-  "Override standard behaviour and store next keystroke no matter what."
+  "Unconditionally store next keystroke."
   (interactive)
   (setq dot-mode-state (+ dot-mode-state 2))
   (message "dot-mode will remember the next keystroke..."))
 
 (defun dot-mode-after-change (start end prevlen)
-  "Dot mode's after-change-functions hook"
-  ;; By the time we get here, dot-mode-pre-hook has already setup
-  ;; dot-mode-cmd-keys.  It'll be a vector, t, or nil.
+  "Dot mode's `after-change-functions' hook"
+  ;; By the time we get here, `dot-mode-pre-hook' has already setup
+  ;; `dot-mode-cmd-keys.'  It'll be a `vector', `t', or `nil'.
   (cond ((vectorp dot-mode-cmd-keys)
          ;; We just did `execute-extended-command' or an override.
          ;; If we're in override, the keys have already been read and
@@ -335,24 +332,24 @@ or even saved for later use with name-last-kbd-macro"
         (dot-mode-cmd-keys
          (setq dot-mode-cmd-keys (dot-mode-command-keys))))
   ;; Else, do nothing `dot-mode-cmd-keys' will remain `nil'.
-  ;; (Only happens on ignore-undo)
+  ;; (Only happens on `ignore-undo')
   (when dot-mode-cmd-keys
     (setq dot-mode-changed t)))
 
 (defun dot-mode-pre-hook ()
-  "Dot mode's pre-command-hook"
+  "Dot mode's `pre-command-hook'"
 
   ;; remove hook (should already be removed... but double check)
   ;; The only time this will ever do any good is if you did a
   ;; quit out of the minibuffer.  In that case, the hook will
   ;; still be there.  It won't really hurt anything, it will just
   ;; continue to record everything you do in the minibuffer
-  ;; regardless of whether or not it is an execute-extended-command.
-  ;; And the dot-mode-minibuffer-input buffer could get quite large.
+  ;; regardless of whether or not it is an `execute-extended-command'.
+  ;; And the `dot-mode-minibuffer-input' buffer could get quite large.
   (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
 
   (cond
-   ;; Is this an execute-extended-command?
+   ;; Is this an `execute-extended-command' or `smex'?
    ((member this-command '(execute-extended-command smex))
     (setq dot-mode-minibuffer-input nil
           ;; Must get this (M-x) now!  It's gone later.
@@ -361,10 +358,10 @@ or even saved for later use with name-last-kbd-macro"
           dot-mode-changed          nil)
     ;; Must be a global hook
     (add-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit))
-   (dot-mode-changed ;; on override, dot-mode-changed is t
-    ;; Always read the keys here on override _UNLESS_ it's a quoted-insert.
+   (dot-mode-changed ;; on override, `dot-mode-changed' is t
+    ;; Always read the keys here on override _UNLESS_ it's a `quoted-insert'.
     ;; This is to make sure we capture keys that don't change the buffer.
-    ;; On quoted-insert, all we get here is , but in dot-mode-after-change,
+    ;; On `quoted-insert', all we get here is , but in `dot-mode-after-change',
     ;; we get  plus the following key (and we're guaranteed to change the
     ;; buffer)
     (setq dot-mode-cmd-keys (or (eq this-command 'quoted-insert)
@@ -373,7 +370,7 @@ or even saved for later use with name-last-kbd-macro"
    ((and dot-mode-ignore-undo
          (member this-command '(advertised-undo undo undo-tree-undo undo-tree-redo)))
     (setq dot-mode-cmd-keys nil))
-   ;; signal to read later (in dot-mode-after-change)
+   ;; signal to read later (in `dot-mode-after-change')
    (t (setq dot-mode-cmd-keys t))))
 
 (defun dot-mode-loop ()
@@ -400,8 +397,7 @@ or even saved for later use with name-last-kbd-macro"
 (define-minor-mode dot-mode
   "Dot mode mimics the `.' function in vi, repeating sequences of
 commands and/or typing delimited by motion events.  Use `C-.'
-rather than just `.'."
-  nil " Dot"
+rather than just `.'."  nil " Dot"
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-.")   'dot-mode-execute)
     (define-key map (kbd "C-M-.") 'dot-mode-override)
@@ -425,7 +421,6 @@ rather than just `.'."
             dot-mode-changed      nil
             dot-mode-cmd-buffer   nil
             dot-mode-cmd-keys     nil))))
-
 
 (defun dot-mode-on ()
   "Turn on dot-mode."
