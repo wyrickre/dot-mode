@@ -432,7 +432,19 @@ rather than just `.'."  nil " Dot"
 (defun dot-mode-on ()
   "Turn on dot-mode."
   (interactive)
-  (unless (minibufferp) (dot-mode 1)))
+  ;; Ignore internal buffers -- this stops modifications in the echo area being
+  ;; recorded as a macro that gets used elsewhere.
+  (unless (or (eq ?\  (aref (buffer-name) 0))
+              ;; Also ignore the *Messages* buffer -- when `dot-mode' is enabled
+              ;; here some recursion happens due to the `after-change-functions'
+              ;; in that buffer getting called.
+              (eq (current-buffer) (messages-buffer))
+              ;; I suspect all minibuffers will have a space at the start of
+              ;; their buffer name, and hence I won't need this check.
+              ;; Unfortunately I can't find any documentation
+              ;; disproving/confirming this, so we include this check.
+              (minibufferp))
+    (dot-mode 1)))
 
 ;;;###autoload
 (defalias 'turn-on-dot-mode 'dot-mode-on)
