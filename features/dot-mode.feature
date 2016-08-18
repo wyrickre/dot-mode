@@ -164,3 +164,22 @@ Feature: Can override motion commands
     Second line modified
     Third line modified
     """
+
+
+Feature: global-dot-mode does not recurse on error
+  If an error occurs
+  Dot mode does not recurse after attempting to repeat
+
+  Scenario: Repeat an empty buffer
+    Given I empty the command buffer
+    And I press "C-."
+    Then The last message should be "Nothing to repeat"
+
+  Scenario: Repeat an empty buffer in global-dot-mode
+    Given I turn on global-dot-mode
+    And I press "C-."
+    Then The last message should be "Nothing to repeat"
+    And I press "C-."
+    Then The last message should be "Nothing to repeat"
+    And I press "C-."
+    Then The last message should be "Nothing to repeat"
