@@ -114,7 +114,7 @@
 ;;; TODO
 ;;; * Explore using recent-keys for this functionality
 
-(defconst dot-mode-version "1.12"
+(defconst dot-mode-version "1.13"
   "Report bugs to: Robert Wyrick <rob@wyrick.org>")
 
 ;;; CHANGE HISTORY
@@ -201,6 +201,9 @@
 ;;; 1.12
 ;;; Make calls to make-local-hook optional for Emacs 24 compatibility.
 ;;; Use kmacro-display for displaying the macro string.
+;;;
+;;; 1.13
+;;; Misc updates to follow elisp progression and add tests.
 
 (defvar dot-mode-global-mode t
   "Should dot-mode share its command buffer between buffers?")
