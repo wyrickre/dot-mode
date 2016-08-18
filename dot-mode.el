@@ -348,7 +348,7 @@ or even saved for later use with name-last-kbd-macro"
   ;;     On X Emacs, we'll call character-to-event later
   ;;     On GNU Emacs, vconcat will handle strings
   (setq dot-mode-minibuffer-input
-        (concat dot-mode-minibuffer-input (buffer-string) "\r"))
+        (concat dot-mode-minibuffer-input (minibuffer-contents) "\r"))
 
   ;; I'd really like to check this-command to see if it's exit-minibuffer
   ;; and remove this function from the minibuffer-exit-hook if it is.

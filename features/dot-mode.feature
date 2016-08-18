@@ -41,7 +41,9 @@ Feature: Repeats changes to buffer
     And I press "<return>"
     And I press "69"
     And I execute the action chain
-    Then I should see "Heli"
+    Then I should only see "Heli"
+    Given I press "C-."
+    Then I should only see "Helii"
 
 Feature: Integrates with smex
   In order to use both dot-mode and smex
