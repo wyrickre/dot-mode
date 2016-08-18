@@ -204,6 +204,7 @@
 ;;;
 ;;; 1.13
 ;;; Misc updates to follow elisp progression and add tests.
+;;; Remove XEmacs compatibility.
 
 (defvar dot-mode-global-mode t
   "Should dot-mode share its command buffer between buffers?")
@@ -385,9 +386,8 @@ Then it can be called with `call-last-kbd-macro', named with
     (if (and (not (null dot-mode-cmd-buffer))
              dot-mode-verbose)
         ;; I message before AND after a macro execution.
-        ;; On XEmacs, I never saw the Repeating message above...
-        ;; Besides, this way you'll know if your macro somehow
-        ;; hangs during execution (on GNU Emacs, anyway).
+        ;; This way you'll know if your macro somehow
+        ;; hangs during execution.
         (message "Repeated \"%s\"" (dot-mode-buffer-to-string)))
     ;; Put the hooks back
     (dot-mode-add-hooks)))
