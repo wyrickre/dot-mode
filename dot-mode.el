@@ -1,6 +1,15 @@
-;;; dot-mode.el - minor mode to repeat typing or commands
+;;; dot-mode.el --- minor mode to repeat typing or commands
+
 ;;; Copyright (C) 1995 James Gillespie
 ;;; Copyright (C) 2000 Robert Wyrick (rob@wyrick.org)
+
+;; Author: Robert Wyrick <rob@wyrick.org>
+;; Maintainer: Robert Wyrick <rob@wyrick.org>
+;; Keywords: convenience
+;; Version: 1.13
+;; URL: https://github.com/wyrickre/dot-mode
+;; Package-Requires: ((emacs "24.3"))
+
 ;;
 ;; Purpose of this package: minor mode to repeat typing or commands
 ;;
