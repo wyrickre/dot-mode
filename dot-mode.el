@@ -1,6 +1,15 @@
-;;; dot-mode.el - minor mode to repeat typing or commands
+;;; dot-mode.el --- minor mode to repeat typing or commands
+
 ;;; Copyright (C) 1995 James Gillespie
 ;;; Copyright (C) 2000 Robert Wyrick (rob@wyrick.org)
+
+;; Author: Robert Wyrick <rob@wyrick.org>
+;; Maintainer: Robert Wyrick <rob@wyrick.org>
+;; Keywords: convenience
+;; Version: 1.13
+;; URL: https://github.com/wyrickre/dot-mode
+;; Package-Requires: ((emacs "24.3"))
+
 ;;
 ;; Purpose of this package: minor mode to repeat typing or commands
 ;;
@@ -22,7 +31,7 @@
 ;;
 ;;     (require 'dot-mode)
 ;;     (add-hook 'find-file-hooks 'dot-mode-on)
-;; 
+;;
 ;; You may still want to use the global-set-key above.. especially if you
 ;; use the *scratch* buffer.
 ;;
@@ -86,7 +95,7 @@
 ;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;;; GNU General Public License for more details.
 
-;;; A copy of the GNU General Public License can be obtained from 
+;;; A copy of the GNU General Public License can be obtained from
 ;;; the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA
 ;;; 02139, USA.
 
@@ -114,7 +123,7 @@
 ;;; TODO
 ;;; * Explore using recent-keys for this functionality
 
-(defconst dot-mode-version "1.12"
+(defconst dot-mode-version "1.13"
   "Report bugs to: Robert Wyrick <rob@wyrick.org>")
 
 ;;; CHANGE HISTORY
@@ -162,19 +171,19 @@
 ;;; an error during execution of the stored macro.
 ;;;
 ;;; 1.8
-;;; Second attempt to capture what the user is doing with 
+;;; Second attempt to capture what the user is doing with
 ;;; execute-extended-command (M-x).  The previous version didn't work
 ;;; in XEmacs.  This version works in both XEmacs and GNUEmacs.
 ;;;
 ;;; 1.9
-;;; Third attempt to capture what the user is doing with 
+;;; Third attempt to capture what the user is doing with
 ;;; execute-extended-command (M-x).  Wow was I making things hard.
 ;;; It's cost me a lot of version numbers in a short amount of time,
 ;;; so we won't discuss my previous attempts. *grin*  My second attempt
 ;;; worked just fine, but it was more complicated and maybe not as
 ;;; portable to older version of X/GNU Emacs.
 ;;; Other things:
-;;;   - Yet another restructuring of the code.  By doing so, 
+;;;   - Yet another restructuring of the code.  By doing so,
 ;;;     quoted-insert (C-q) is properly stored by dot-mode.
 ;;;     (quoted-insert has been broken since ver 1.6)
 ;;;   - Deleted an extraneous state and the "extended-state" added
@@ -201,38 +210,10 @@
 ;;; 1.12
 ;;; Make calls to make-local-hook optional for Emacs 24 compatibility.
 ;;; Use kmacro-display for displaying the macro string.
-
-(defvar dot-mode nil
-  "Whether dot mode is on or not")
-(make-variable-buffer-local 'dot-mode)
-
-(defvar dot-mode-map
-  (let ((map (make-sparse-keymap)))
-    (if (fboundp 'read-kbd-macro)
-        (progn
-          (define-key map (read-kbd-macro "C-.")   'dot-mode-execute)
-          (define-key map (read-kbd-macro "C-M-.") 'dot-mode-override)
-          (define-key map (read-kbd-macro "C-c .") 'dot-mode-copy-to-last-kbd-macro)
-        )
-      ;; ELSE - try this way...
-      (define-key map [(control ?.)]         'dot-mode-execute)
-      (define-key map [(control meta ?.)]    'dot-mode-override)
-      (define-key map [(control ?c)(?.)]     'dot-mode-copy-to-last-kbd-macro)
-    )
-    map)
-  "Keymap used in dot mode buffers")
-
-;; Make sure add-minor-mode exists
-(if (not (fboundp 'add-minor-mode))
-    (defun add-minor-mode (mode name map)
-      (or (assoc mode minor-mode-alist)
-          (setq minor-mode-alist
-                (cons (list mode name) minor-mode-alist)))
-      (or (assoc mode minor-mode-map-alist)
-          (setq minor-mode-map-alist
-                (cons (cons mode map) minor-mode-map-alist)))))
-
-(add-minor-mode 'dot-mode " Dot" dot-mode-map) ;; depends on add-minor-mode
+;;;
+;;; 1.13
+;;; Misc updates to follow elisp progression and add tests.
+;;; Remove XEmacs compatibility.
 
 (defvar dot-mode-global-mode t
   "Should dot-mode share its command buffer between buffers?")
@@ -259,284 +240,193 @@
 (defvar dot-mode-minibuffer-input nil
   "Global buffer to capture minibuffer input")
 
-;; The below statements are another possible definition of dot-mode-command-keys
-;; that I *think* will work.  It hasn't been well tested so I'm leaving it
-;; out for now.  This was written at the same time I found this-command-keys-vector.
-;; Since I don't know what version of emacs has that func, I was working on
-;; the below as an alternate work-around.
-;; ------------------------------------------------------------------------
-;;  ((and (boundp 'current-prefix-arg)
-;;        (boundp 'meta-prefix-char)
-;;        (fboundp 'this-single-command-keys)) ;; also see this-single-command-raw-keys
-;;   (defun dot-mode-command-keys ()
-;;     (if (null current-prefix-arg)
-;;         (this-single-command-keys)
-;;       (vconcat (char-to-string meta-prefix-char) (number-to-string current-prefix-arg) (this-single-command-keys)))))
-
-(cond
- ((fboundp 'this-command-keys-vector)
-  (fset 'dot-mode-command-keys (symbol-function 'this-command-keys-vector)))
- (t
-  (defun dot-mode-command-keys ()
-    (let ((tmp (this-command-keys)))
-      (cond ((vectorp tmp)
-             tmp)
-            ((stringp tmp)
-             (string-to-vector tmp))
-            ((fboundp 'character-to-event) ;; xemacs
-             (character-to-event tmp))
-            (t ;; probably never get here
-             (vconcat tmp))))))
-)
-
-(defun dot-mode-copy-to-last-kbd-macro ()
-  "Copy the current dot-mode command buffer to the last-kbd-macro variable.
-Then it can be called with call-last-kbd-macro, named with name-last-kbd-macro,
-or even saved for later use with name-last-kbd-macro"
-  (interactive)
-  (if (null dot-mode-cmd-buffer)
-      (message "Nothing to copy.")
-    (setq last-kbd-macro dot-mode-cmd-buffer)
-    (message "Copied."))
-)
-
-(cond ((and (fboundp 'event-modifiers) (fboundp 'event-basic-type))
-       (defun dot-mode-event-to-string (ev)
-         "Return the event as a string."
-       (let
-         ((em (event-modifiers ev))
-          (eb (event-basic-type ev)))
-         (if (and (not (symbolp eb)) (equal em '(control)))
-           (char-to-string ev)
-           (concat
-             (mapconcat (lambda(x) (concat "<" (symbol-name x) ">")) em "")
-             (if (symbolp eb) (concat "<" (symbol-name eb) ">") (char-to-string eb))
-      )))))
-      (t
-       (defun dot-mode-event-to-string (ev)
-         "Return the event as a string."
-         (char-to-string ev)))
-)
+(defvar dot-mode-verbose t
+  "Message the user every time a repeat happens")
 
 (defun dot-mode-buffer-to-string ()
   "Return the macro buffer as a string."
-  (let ((str dot-mode-cmd-buffer))
-    (cond ((fboundp 'kmacro-display)
-           (setq str (kmacro-display str)))
-          ((fboundp 'character-to-event) ; we're on X-Emacs
-           (progn
-             (setq str (prin1-to-string str))
-             (setq str (replace-in-string str " *#<keypress-event +" "<"))
-             (setq str (replace-in-string str " *<\\(.\\)> *" "\\1"))
-             (setq str (replace-in-string str "^\\[\\(.*\\)\\]$" "\\1"))
-             ))
-          (t ;; ELSE - attempt to do it ourselves
-           (setq str (mapconcat (lambda (arg)
-                                  (cond ((and (fboundp 'eventp) (eventp arg))
-                                         (dot-mode-event-to-string arg))
-                                        ((symbolp arg)
-                                         (concat "<" (symbol-name arg) ">"))
-                                        (t
-                                         (char-to-string arg)))) str "")))
-    )
-    str)
-)
+  (kmacro-display dot-mode-cmd-buffer))
 
 (defun dot-mode-minibuffer-exit ()
   "Catch minibuffer exit"
-  ;; Just store it as a string buffer... 
-  ;;     On X Emacs, we'll call character-to-event later
-  ;;     On GNU Emacs, vconcat will handle strings
-  (setq dot-mode-minibuffer-input
-        (concat dot-mode-minibuffer-input (buffer-string) "\r"))
-
-  ;; I'd really like to check this-command to see if it's exit-minibuffer
-  ;; and remove this function from the minibuffer-exit-hook if it is.
+  ;; I'd really like to check `this-command' to see if it's `exit-minibuffer'
+  ;; and remove this function from the `minibuffer-exit-hook' if it is.
   ;; Unfortunately, if an extended command asks for 2 or more arguments,
-  ;; the first arg would be the only one to get recorded since exit-minibuffer
+  ;; the first arg would be the only one to get recorded since `exit-minibuffer'
   ;; is called between each argument.
-)
-
-(defun dot-mode-execute ()
-  "Execute stored commands."
-  (interactive)
-  ;; Don't want execution to kick off infinite recursion
-  (if (null dot-mode-cmd-buffer)
-      (message "Nothing to repeat")
-    (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
-    (remove-hook 'post-command-hook 'dot-mode-loop t)
-    (remove-hook 'after-change-functions 'dot-mode-after-change t)
-    ;; Do the business
-    (message "Repeating \"%s\"" (dot-mode-buffer-to-string))
-     (condition-case nil
-        (execute-kbd-macro dot-mode-cmd-buffer)
-      ((error quit exit)
-       (setq dot-mode-cmd-buffer nil
-             dot-mode-state      0)
-       (message "Dot mode reset")))
-    (if (not (null dot-mode-cmd-buffer))
-        ;; I message before AND after a macro execution.
-        ;; On XEmacs, I never saw the Repeating message above...
-        ;; Besides, this way you'll know if your macro somehow
-        ;; hangs during execution (on GNU Emacs, anyway).
-        (message "Repeated \"%s\"" (dot-mode-buffer-to-string)))
-    ;; Put the hooks back
-    (if (fboundp 'make-local-hook)
-        (progn
-          (make-local-hook 'pre-command-hook)
-          (make-local-hook 'post-command-hook)
-          (make-local-hook 'after-change-functions)))
-    (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
-    (add-hook 'post-command-hook 'dot-mode-loop nil t)
-    (add-hook 'after-change-functions 'dot-mode-after-change nil t)
-  )
-)
-
-(defun dot-mode-override ()
-  "Override standard behaviour and store next keystroke no matter what."
-  (interactive)
-  (setq dot-mode-state (+ dot-mode-state 2))
-  (message "dot-mode will remember the next keystroke..."))
+  (push (minibuffer-contents) dot-mode-minibuffer-input))
 
 (defun dot-mode-after-change (start end prevlen)
-  "Dot mode's after-change-functions hook"
-  ;; By the time we get here, dot-mode-pre-hook has already setup
-  ;; dot-mode-cmd-keys.  It'll be a vector, t, or nil.
-
-  (cond ((vectorp dot-mode-cmd-keys) ;; we just did an execute-extended-command
-                                     ;; or an override
-
-         (if (not dot-mode-changed)     ;; if dot-mode-changed is t, we're in override
-             (progn
-               ;; remove hook
-               (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
-               (if (not (null dot-mode-minibuffer-input))
-                   (progn
-                     (if (fboundp 'character-to-event) ;; we're on X-Emacs
-                         (setq dot-mode-minibuffer-input
-                               (mapcar 'character-to-event dot-mode-minibuffer-input)))
-                     (setq dot-mode-cmd-keys (vconcat dot-mode-cmd-keys
-                                                      dot-mode-minibuffer-input))
-                   )
-               )
-             )
-           ;; ELSE - we're in override and the keys have already been read
-         )
-        )
+  "Dot mode's `after-change-functions' hook"
+  ;; By the time we get here, `dot-mode-pre-hook' has already setup
+  ;; `dot-mode-cmd-keys.'  It'll be a `vector', `t', or `nil'.
+  (cond ((vectorp dot-mode-cmd-keys)
+         ;; We just did `execute-extended-command' or an override.
+         ;; If we're in override, the keys have already been read and
+         ;; `dot-mode-changed' is `t'
+         (unless dot-mode-changed
+           (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
+           (unless (null dot-mode-minibuffer-input)
+             ;; The first item in this list is what was in the minibuffer
+             ;; after choosing the command from either
+             ;; `execute-extended-command' or `smex'.
+             ;; This may very well not be the name of the command, so we
+             ;; replace it with the head of the list
+             ;; `extended-command-history'.
+             (setq dot-mode-cmd-keys
+                   (vconcat dot-mode-cmd-keys
+                            (mapconcat
+                             #'identity
+                             (cons (car extended-command-history)
+                                   (cdr (nreverse dot-mode-minibuffer-input)))
+                             "\r"))))))
         ;; Normal mode
         (dot-mode-cmd-keys
-         (setq dot-mode-cmd-keys (dot-mode-command-keys))
-        )
-        ;; Else, do nothing dot-mode-cmd-keys will remain nil. (Only happens on ignore-undo)
-  )
-  (if dot-mode-cmd-keys
-      (setq dot-mode-changed t))
-)
+         (setq dot-mode-cmd-keys (this-command-keys-vector))))
+  ;; Else, do nothing `dot-mode-cmd-keys' will remain `nil'.
+  ;; (Only happens on `ignore-undo')
+  (when dot-mode-cmd-keys
+    (setq dot-mode-changed t)))
 
 (defun dot-mode-pre-hook ()
-  "Dot mode's pre-command-hook"
+  "Dot mode's `pre-command-hook'"
 
   ;; remove hook (should already be removed... but double check)
   ;; The only time this will ever do any good is if you did a
   ;; quit out of the minibuffer.  In that case, the hook will
   ;; still be there.  It won't really hurt anything, it will just
   ;; continue to record everything you do in the minibuffer
-  ;; regardless of whether or not it is an execute-extended-command.
-  ;; And the dot-mode-minibuffer-input buffer could get quite large.
+  ;; regardless of whether or not it is an `execute-extended-command'.
+  ;; And the `dot-mode-minibuffer-input' buffer could get quite large.
   (remove-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
 
   (cond
-   ;; Is this an execute-extended-command?
-   ((eq this-command 'execute-extended-command)
+   ;; Is this an `execute-extended-command' or `smex'?
+   ((member this-command '(execute-extended-command smex))
     (setq dot-mode-minibuffer-input nil
           ;; Must get this (M-x) now!  It's gone later.
-          dot-mode-cmd-keys         (dot-mode-command-keys)
-          dot-mode-changed          nil ;; ignore an override
-    )
+          dot-mode-cmd-keys         (this-command-keys-vector)
+          ;; ignore an override
+          dot-mode-changed          nil)
     ;; Must be a global hook
-    (add-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit)
-   )
-   (dot-mode-changed            ;; on override, dot-mode-changed is t
-    ;; Always read the keys here on override _UNLESS_ it's a quoted-insert.
+    (add-hook 'minibuffer-exit-hook 'dot-mode-minibuffer-exit))
+   (dot-mode-changed ;; on override, `dot-mode-changed' is t
+    ;; Always read the keys here on override _UNLESS_ it's a `quoted-insert'.
     ;; This is to make sure we capture keys that don't change the buffer.
-    ;; On quoted-insert, all we get here is , but in dot-mode-after-change,
+    ;; On `quoted-insert', all we get here is , but in `dot-mode-after-change',
     ;; we get  plus the following key (and we're guaranteed to change the
     ;; buffer)
     (setq dot-mode-cmd-keys (or (eq this-command 'quoted-insert)
-                                (dot-mode-command-keys)))
-   )
+                                (this-command-keys-vector))))
    ;; Should we ignore this key sequence? (is it an undo?)
    ((and dot-mode-ignore-undo
-         (or (eq this-command 'advertised-undo)
-             (eq this-command 'undo)))
-    (setq dot-mode-cmd-keys nil)
-   )
-   (t
-    (setq dot-mode-cmd-keys t)  ;; signal to read later (in dot-mode-after-change)
-   )
-  )
-)
+         (member this-command '(advertised-undo undo undo-tree-undo undo-tree-redo)))
+    (setq dot-mode-cmd-keys nil))
+   ;; signal to read later (in `dot-mode-after-change')
+   (t (setq dot-mode-cmd-keys t))))
+
+;; (defun dot-mode--state-name ()
+;;   (nth dot-mode-state '("Initial (no changes)"
+;;                         "Recording buffer changes"
+;;                         "Override from recording"
+;;                         "Override from initial")))
 
 (defun dot-mode-loop ()
   "The heart of dot mode."
-;;  (message "in: state is %d" dot-mode-state)
-;;  (message "in: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
+  ;; (message "in:\tstate: \"%s\"\n\tcommand: \"%S\""
+  ;;          (dot-mode--state-name) this-command)
+  ;; (message "in: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   (cond ((= dot-mode-state 0)           ; idle
          (if dot-mode-changed
              (setq dot-mode-state       1
                    dot-mode-changed     nil
-                   dot-mode-cmd-buffer  dot-mode-cmd-keys))
-        )
+                   dot-mode-cmd-buffer  dot-mode-cmd-keys)))
         ((= dot-mode-state 1)           ; recording
          (if dot-mode-changed
              (setq dot-mode-changed     nil
                    dot-mode-cmd-buffer  (vconcat dot-mode-cmd-buffer dot-mode-cmd-keys))
-           (setq dot-mode-state 0))
-        )
+           (setq dot-mode-state 0)))
         (t ; = 2 or 3                   ; override
          (setq dot-mode-state       (- dot-mode-state 2)
-               dot-mode-changed     t)
-        )
+               dot-mode-changed     t)))
+  ;; (message "out: state is \"%s\"" (dot-mode--state-name))
+  ;; (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
   )
-;;  (message "out: state is %d" dot-mode-state)
-;;  (message "out: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
-)
 
-(defun dot-mode (arg)
-  "Toggle dot mode.
-With arg, turn dot mode on iff arg is positive.
+(defun dot-mode-remove-hooks ()
+  (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
+  (remove-hook 'post-command-hook 'dot-mode-loop t)
+  (remove-hook 'after-change-functions 'dot-mode-after-change t))
 
-Dot mode mimics the `.' function in vi, repeating sequences of
-commands and/or typing delimited by motion events.  Use `C-.' rather
-than just `.'."
-  (interactive "P")
-  (setq dot-mode
-        (if (null arg)
-            (not dot-mode)
-          (> (prefix-numeric-value arg) 0)))
+(defun dot-mode-add-hooks ()
+  (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
+  (add-hook 'post-command-hook 'dot-mode-loop nil t)
+  (add-hook 'after-change-functions 'dot-mode-after-change nil t))
+
+;;;###autoload
+(defun dot-mode-copy-to-last-kbd-macro ()
+  "Copy the current `dot-mode' command buffer to the `last-kbd-macro' variable.
+Then it can be called with `call-last-kbd-macro', named with
+`name-last-kbd-macro', or even saved for later use with
+`name-last-kbd-macro'"
+  (interactive)
+  (if (null dot-mode-cmd-buffer)
+      (message "Nothing to copy.")
+    (setq last-kbd-macro dot-mode-cmd-buffer)
+    (message "Copied.")))
+
+;;;###autoload
+(defun dot-mode-execute ()
+  "Execute stored commands."
+  (interactive)
+  ;; Don't want execution to kick off infinite recursion
+  (if (null dot-mode-cmd-buffer)
+      (message "Nothing to repeat")
+    (dot-mode-remove-hooks)
+    ;; Do the business
+    (when dot-mode-verbose
+      (message "Repeating \"%s\"" (dot-mode-buffer-to-string)))
+    (condition-case nil
+        (execute-kbd-macro dot-mode-cmd-buffer)
+      ((error quit exit)
+       (setq dot-mode-cmd-buffer nil
+             dot-mode-state      0)
+       (message "Dot mode reset")))
+    (if (and (not (null dot-mode-cmd-buffer))
+             dot-mode-verbose)
+        ;; I message before AND after a macro execution.
+        ;; This way you'll know if your macro somehow
+        ;; hangs during execution.
+        (message "Repeated \"%s\"" (dot-mode-buffer-to-string)))
+    ;; Put the hooks back
+    (dot-mode-add-hooks)))
+
+;;;###autoload
+(defun dot-mode-override ()
+  "Unconditionally store next keystroke."
+  (interactive)
+  (setq dot-mode-state (+ dot-mode-state 2))
+  (message "dot-mode will remember the next keystroke..."))
+
+;;;###autoload
+(define-minor-mode dot-mode
+  "Dot mode mimics the `.' function in vi, repeating sequences of
+commands and/or typing delimited by motion events.  Use `C-.'
+rather than just `.'."  nil " Dot"
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-.")   'dot-mode-execute)
+    (define-key map (kbd "C-M-.") 'dot-mode-override)
+    (define-key map (kbd "C-c .") 'dot-mode-copy-to-last-kbd-macro)
+    map)
   (if (not dot-mode)
-      (progn
-        (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
-        (remove-hook 'post-command-hook 'dot-mode-loop t)
-        (remove-hook 'after-change-functions 'dot-mode-after-change t)
-      )
-    ;; ELSE
-    ;; The hooks are _ALWAYS_ local since dot-mode may not be on in every buffer
-    (if (fboundp 'make-local-hook)
-        (progn
-          (make-local-hook 'pre-command-hook)
-          (make-local-hook 'post-command-hook)
-          (make-local-hook 'after-change-functions)))
-    (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
-    (add-hook 'post-command-hook 'dot-mode-loop nil t)
-    (add-hook 'after-change-functions 'dot-mode-after-change nil t)
+      (dot-mode-remove-hooks)
+    (dot-mode-add-hooks)
     (if dot-mode-global-mode
         (progn
           (kill-local-variable 'dot-mode-cmd-buffer)
           (kill-local-variable 'dot-mode-cmd-keys)
           (kill-local-variable 'dot-mode-state)
-          (kill-local-variable 'dot-mode-changed)
-        )
+          (kill-local-variable 'dot-mode-changed))
       ;; ELSE
       (make-local-variable 'dot-mode-cmd-buffer)
       (make-local-variable 'dot-mode-cmd-keys)
@@ -545,23 +435,30 @@ than just `.'."
       (setq dot-mode-state        0
             dot-mode-changed      nil
             dot-mode-cmd-buffer   nil
-            dot-mode-cmd-keys     nil
-      )
-    )
-  )
-  (cond ((fboundp 'force-mode-line-update)
-         (force-mode-line-update))
-        ((fboundp 'redraw-modeline)
-         (redraw-modeline)))
-;;  (set-buffer-modified-p (buffer-modified-p)) ;; Why was I doing this?
-)
+            dot-mode-cmd-keys     nil))))
 
+;;;###autoload
 (defun dot-mode-on ()
   "Turn on dot-mode."
   (interactive)
-  (dot-mode 1))
+  ;; Ignore internal buffers -- this stops modifications in the echo area being
+  ;; recorded as a macro that gets used elsewhere.
+  (unless (or (eq ?\  (aref (buffer-name) 0))
+              ;; Also ignore the *Messages* buffer -- when `dot-mode' is enabled
+              ;; here some recursion happens due to the `after-change-functions'
+              ;; in that buffer getting called.
+              (eq (current-buffer) (messages-buffer))
+              ;; I suspect all minibuffers will have a space at the start of
+              ;; their buffer name, and hence I won't need this check.
+              ;; Unfortunately I can't find any documentation
+              ;; disproving/confirming this, so we include this check.
+              (minibufferp))
+    (dot-mode 1)))
 
+;;;###autoload
 (defalias 'turn-on-dot-mode 'dot-mode-on)
+;;;###autoload
+(define-global-minor-mode global-dot-mode dot-mode dot-mode-on)
 
 (provide 'dot-mode)
 
