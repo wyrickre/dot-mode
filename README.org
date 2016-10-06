@@ -16,7 +16,7 @@ Add to =load-path=, and =(require 'dot-mode)=.
 Run the command =dot-mode= to start =dot-mode=, if you want =dot-mode= to be
 enabled in all buffers you can have the sexp =(global-dot-mode t)= in your
 config.
-*** Customisation
+*** Customization
 There are three variables that allow you to modify how dot-mode
 behaves:
 #+BEGIN_SRC elisp
