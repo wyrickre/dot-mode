@@ -215,6 +215,8 @@
 ;;; Misc updates to follow elisp progression and add tests.
 ;;; Remove XEmacs compatibility.
 
+(require 'kmacro)
+
 (defvar dot-mode-global-mode t
   "Should dot-mode share its command buffer between buffers?")
 
