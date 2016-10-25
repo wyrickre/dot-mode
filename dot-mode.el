@@ -10,6 +10,22 @@
 ;; URL: https://github.com/wyrickre/dot-mode
 ;; Package-Requires: ((emacs "24.3"))
 
+;;; This program is free software; you can redistribute it and/or modify
+;;; it under the terms of the GNU General Public License as published by
+;;; the Free Software Foundation; either version 1, or (at your option)
+;;; any later version.
+
+;;; This program is distributed in the hope that it will be useful,
+;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;; GNU General Public License for more details.
+
+;;; A copy of the GNU General Public License can be obtained from
+;;; the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA
+;;; 02139, USA.
+
+;;; Commentary:
+
 ;;
 ;; Purpose of this package: minor mode to repeat typing or commands
 ;;
@@ -85,20 +101,6 @@
 ;; none
 ;;
 
-;;; This program is free software; you can redistribute it and/or modify
-;;; it under the terms of the GNU General Public License as published by
-;;; the Free Software Foundation; either version 1, or (at your option)
-;;; any later version.
-
-;;; This program is distributed in the hope that it will be useful,
-;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;;; GNU General Public License for more details.
-
-;;; A copy of the GNU General Public License can be obtained from
-;;; the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA
-;;; 02139, USA.
-
 ;;; COMMENTARY
 ;;;
 ;;; This mode is written to address one argument in the emacs vs. vi
@@ -122,6 +124,8 @@
 ;;;
 ;;; TODO
 ;;; * Explore using recent-keys for this functionality
+
+;;; Code:
 
 (defconst dot-mode-version "1.13"
   "Report bugs to: Robert Wyrick <rob@wyrick.org>")
@@ -214,6 +218,8 @@
 ;;; 1.13
 ;;; Misc updates to follow elisp progression and add tests.
 ;;; Remove XEmacs compatibility.
+
+(require 'kmacro)
 
 (defvar dot-mode-global-mode t
   "Should dot-mode share its command buffer between buffers?")
