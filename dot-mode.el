@@ -249,6 +249,18 @@
 (defvar dot-mode-verbose t
   "Message the user every time a repeat happens")
 
+;; n.b. This is a little tricky ... when the prefix-argument is changed it
+;; doesn't leave much of a trace. It resets `this-command' and
+;; `real-this-command' to the previous ones.
+;; Hence the best way (that I know of) to tell whether the last command was
+;; changing the prefix is by adding a hook into
+;; `prefix-command-preserve-state-hook'.
+(defvar dot-mode-prefix-arg nil
+  "Marker variable to show the prefix argument has been changed.")
+
+(defvar dot-mode-argument-buffer nil
+  "Global buffer to store current digit argument.")
+
 (defun dot-mode-buffer-to-string ()
   "Return the macro buffer as a string."
   (kmacro-display dot-mode-cmd-buffer))
@@ -337,21 +349,30 @@
 ;;                         "Override from recording"
 ;;                         "Override from initial")))
 
+(defun dot-mode-prefix-command-hook () (setq dot-mode-prefix-arg t))
 (defun dot-mode-loop ()
   "The heart of dot mode."
   ;; (message "in:\tstate: \"%s\"\n\tcommand: \"%S\""
   ;;          (dot-mode--state-name) this-command)
   ;; (message "in: cmd-buffer is '%s'" (dot-mode-buffer-to-string))
-  (cond ((= dot-mode-state 0)           ; idle
+
+  ;; Record all digit-argument and universal-argument functions
+  (cond (dot-mode-prefix-arg
+         ;; Keep this keypress around, and don't change the current state
+         (setq dot-mode-prefix-arg nil
+               dot-mode-argument-buffer (vconcat dot-mode-argument-buffer (this-command-keys-vector))))
+        ((= dot-mode-state 0)           ; idle
          (if dot-mode-changed
              (setq dot-mode-state       1
                    dot-mode-changed     nil
-                   dot-mode-cmd-buffer  dot-mode-cmd-keys)))
+                   dot-mode-cmd-buffer  (vconcat dot-mode-argument-buffer dot-mode-cmd-keys)))
+         (setq dot-mode-argument-buffer nil))
         ((= dot-mode-state 1)           ; recording
          (if dot-mode-changed
              (setq dot-mode-changed     nil
-                   dot-mode-cmd-buffer  (vconcat dot-mode-cmd-buffer dot-mode-cmd-keys))
-           (setq dot-mode-state 0)))
+                   dot-mode-cmd-buffer  (vconcat dot-mode-cmd-buffer dot-mode-argument-buffer dot-mode-cmd-keys))
+           (setq dot-mode-state 0))
+         (setq dot-mode-argument-buffer nil))
         (t ; = 2 or 3                   ; override
          (setq dot-mode-state       (- dot-mode-state 2)
                dot-mode-changed     t)))
@@ -362,12 +383,14 @@
 (defun dot-mode-remove-hooks ()
   (remove-hook 'pre-command-hook 'dot-mode-pre-hook t)
   (remove-hook 'post-command-hook 'dot-mode-loop t)
-  (remove-hook 'after-change-functions 'dot-mode-after-change t))
+  (remove-hook 'after-change-functions 'dot-mode-after-change t)
+  (remove-hook 'prefix-command-preserve-state-hook 'dot-mode-prefix-command-hook t))
 
 (defun dot-mode-add-hooks ()
   (add-hook 'pre-command-hook 'dot-mode-pre-hook nil t)
   (add-hook 'post-command-hook 'dot-mode-loop nil t)
-  (add-hook 'after-change-functions 'dot-mode-after-change nil t))
+  (add-hook 'after-change-functions 'dot-mode-after-change nil t)
+  (add-hook 'prefix-command-preserve-state-hook 'dot-mode-prefix-command-hook nil t))
 
 ;;;###autoload
 (defun dot-mode-copy-to-last-kbd-macro ()
@@ -412,6 +435,19 @@ Then it can be called with `call-last-kbd-macro', named with
   "Unconditionally store next keystroke."
   (interactive)
   (setq dot-mode-state (+ dot-mode-state 2))
+  ;; If dot-mode-argument-buffer is non nil then we were in the middle (or at
+  ;; the end of a argument chain). In that case we take care to not break it.
+  ;; If it is `nil', then `universal-argument--mode' was not previously active,
+  ;; and we don't activate it in order to avoid changing behaviour.
+  ;; n.b. We're checking `dot-mode-argument-buffer' as a variable that happens
+  ;; to be `nil' when we weren't in an argument chain, it's *not* the "thing
+  ;; we're interested in".
+  (when dot-mode-argument-buffer
+    ;; The docstring of `prefix-command-update' says we need to call it whenever
+    ;; we change the "prefix command state".
+      (progn(prefix-command-update)
+            (setq prefix-arg current-prefix-arg)
+            (universal-argument--mode)))
   (message "dot-mode will remember the next keystroke..."))
 
 ;;;###autoload
@@ -432,16 +468,22 @@ rather than just `.'."  nil " Dot"
           (kill-local-variable 'dot-mode-cmd-buffer)
           (kill-local-variable 'dot-mode-cmd-keys)
           (kill-local-variable 'dot-mode-state)
-          (kill-local-variable 'dot-mode-changed))
+          (kill-local-variable 'dot-mode-changed)
+          (kill-local-variable 'dot-mode-prefix-arg)
+          (kill-local-variable 'dot-mode-argument-buffer))
       ;; ELSE
       (make-local-variable 'dot-mode-cmd-buffer)
       (make-local-variable 'dot-mode-cmd-keys)
       (make-local-variable 'dot-mode-state)
       (make-local-variable 'dot-mode-changed)
+      (make-local-variable 'dot-mode-prefix-arg)
+      (make-local-variable 'dot-mode-argument-buffer)
       (setq dot-mode-state        0
             dot-mode-changed      nil
             dot-mode-cmd-buffer   nil
-            dot-mode-cmd-keys     nil))))
+            dot-mode-cmd-keys     nil
+            dot-mode-prefix-arg   nil
+            dot-mode-argument-buffer nil))))
 
 ;;;###autoload
 (defun dot-mode-on ()
