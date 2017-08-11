@@ -11,9 +11,9 @@ Feature: Repeats changes to buffer
     And I press "C-f"
     And I press "C-."
     Then I should see:
-    """
-    Hello there this is a testHello there this is a test
-    """
+      """
+      Hello there this is a testHello there this is a test
+      """
 
   Scenario: Use commands twice
     Given I go to point "10"
@@ -21,9 +21,9 @@ Feature: Repeats changes to buffer
     And I press "C-4 C-b"
     And I press "C-."
     Then I should only see:
-    """
-    Hello
-    """
+      """
+      Hello
+      """
 
 Feature: Captures extended commands
 
@@ -138,11 +138,11 @@ Feature: Can override motion commands
   Scenario: Override at beginning of command
     Given I clear the buffer
     And I insert:
-    """
-    First line
-    Second line
-    Third line
-    """
+      """
+      First line
+      Second line
+      Third line
+      """
     And I go to beginning of buffer
     And I start an action chain
     And I press "C-M-."
@@ -152,18 +152,18 @@ Feature: Can override motion commands
     And I type " modified"
     And I execute the action chain
     Then I should only see:
-    """
-    First line
-    Second line modified
-    Third line
-    """
+      """
+      First line
+      Second line modified
+      Third line
+      """
     Given I press "C-."
     Then I should only see:
-    """
-    First line
-    Second line modified
-    Third line modified
-    """
+      """
+      First line
+      Second line modified
+      Third line modified
+      """
 
 
 Feature: global-dot-mode does not recurse on error
@@ -183,3 +183,119 @@ Feature: global-dot-mode does not recurse on error
     Then The last message should be "Nothing to repeat"
     And I press "C-."
     Then The last message should be "Nothing to repeat"
+
+Feature: Accounts for universal-argument and digit-argument
+  If I modify a command with arguments
+  Dot mod should record that
+
+  Scenario Outline: I start a modification with a digit-argument
+    Given I clear the buffer
+    And I press "C-l"
+    And I start an action chain
+    And I press "<four-argument>"
+    And I type "a"
+    And I execute the action chain
+    Then I should only see "aaaa"
+    Given I press "C-."
+    Then I should only see "aaaaaaaa"
+
+    Examples:
+      | four-argument |
+      | C-u           |
+      | C-u 4         |
+      | C-4           |
+
+  Scenario Outline: I start a modification with negative-argument
+    Given I clear the buffer
+    And I insert "aaaa"
+    Given I type "l"
+    And I press "C-b"
+    And I start an action chain
+    And I press "<negative-argument>"
+    And I press "C-d"
+    And I execute the action chain
+    Then I should only see "aaal"
+    Given I press "C-."
+    Then I should only see "aal"
+
+    Examples:
+      | negative-argument |
+      | C--               |
+      | C-u -             |
+      | C-- 1             |
+      | C-u - 1           |
+
+  Scenario Outline: I use a digit-argument in the middle of a modification
+    Given I clear the buffer
+    And I press "C-l"
+    And I start an action chain
+    And I type "he"
+    And I press "<four-argument>"
+    And I type "lo"
+    And I execute the action chain
+    Then I should see "hellllo"
+    Given I press "C-."
+    Then I should only see "hellllohellllo"
+
+    Examples:
+      | four-argument |
+      | C-u           |
+      | C-u 4         |
+      | C-4           |
+
+
+  Scenario Outline: I use negative-argument in the middle of a modification
+    Given I clear the buffer
+    And I insert "abababab"
+    And I go to point "5"
+    And I start an action chain
+    And I press "C-d"
+    And I press "<negative-argument>"
+    And I press "C-d"
+    And I execute the action chain
+    Then I should only see "ababab"
+    Given I press "C-."
+    Then I should only see "abab"
+
+
+    Examples:
+      | negative-argument |
+      | C--               |
+      | C-u -             |
+      | C-- 1             |
+      | C-u - 1           |
+
+
+  # Override should always apply to the actual command, not to the
+  # digit-argument.
+  # i.e.   override digit-argument command == digit-argument override command
+  # also, as example
+  # override C-u 34 command  ==
+  # C-u override 34 command  ==
+  # C-u 3 override 4 command  ==
+  # C-u 34 override command
+
+  Scenario Outline: I use override with a digit argument
+    Given I clear the buffer
+    And I insert "ababababab"
+    And I start an action chain
+    And I press "<override-backwards-2>"
+    And I press "C-k"
+    And I press "<override-backwards-2>"
+    And I press "C-k"
+    And I execute the action chain
+    Then I should only see "ababab"
+    Given I press "C-."
+    Then I should only see "ab"
+
+    Examples:
+      | override-backwards-2 |
+      | C-M-. C-2 C-b        |
+      | C-M-. C-u 2 C-b      |
+      | C-M-. C-u - 2 C-f    |
+      | C-2 C-M-. C-b        |
+      | C-u C-M-. 2 C-b      |
+      | C-u C-M-. - 2 C-f    |
+      | C-u 2 C-M-. C-b      |
+      | C-u - C-M-. 2 C-f    |
+      | C-u - 2 C-M-. C-f    |

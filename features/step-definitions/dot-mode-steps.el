@@ -16,7 +16,7 @@
 
 ;; NOTE Don't have a generalised version for see vs only see because espuds
 ;; already has a (Then "^I should see$") step
-(Then "^I should only see\\(?: \"\\(.+\\)\"\\|:\\)$"
+(Then "^I should only see\\(?: \"\\([^\"]*\\)\"\\|:\\)$"
   "Asserts that the current buffer just has some text."
   (lambda (expected)
     (let ((actual (buffer-string))
