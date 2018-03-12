@@ -62,3 +62,11 @@ others using the global one.
          variable.  It can then be executed via =call-last-kbd-macro=
          (normally bound to `C-x-e'), named via =name-last-kbd-macro=,
          and then inserted into your .emacs via =insert-kbd-macro=.
+** For Contributors
+Installation of the development environment can be done with =cask install=.
+
+Tests are written using [[https://github.com/ecukes/ecukes][ecukes]], and can be run with =cask exec ecukes=.
+
+The script =./testrun.sh= starts an emacs instance in the environment that the
+tests are run under. This instance begins with =dot-mode= loaded, but not turned
+on.
